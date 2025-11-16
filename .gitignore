@@ -1,0 +1,10 @@
+/target
+
+Cargo.lock
+*.apk
+*.aab
+*.so
+.gradle
+.idea
+*.iml
+local.properties
