@@ -144,16 +144,30 @@ fn app(_s: &mut Scheduler) -> View {
                 .size(14.0)
                 .color(Color::from_hex("#AAAAAA")),
             Box(Modifier::new().size(1.0, 12.0)),
-            Row(Modifier::new()).child((
-                Button("Export (Root/Shizuku)", export_action.clone())
-                    .modifier(Modifier::new().padding(4.0).clip_rounded(6.0)),
-                Box(Modifier::new().size(8.0, 1.0)),
-                Button("Save JSON to Downloads", save_action.clone())
-                    .modifier(Modifier::new().padding(4.0).clip_rounded(6.0)),
-                Box(Modifier::new().size(8.0, 1.0)),
-                Button("Share JSON", share_action.clone())
-                    .modifier(Modifier::new().padding(4.0).clip_rounded(6.0)),
-            )),
+            repose_ui::Grid(
+                2,
+                Modifier::new().fill_max_width().padding(4.0),
+                vec![
+                    Button("Export (Root/Shizuku)", export_action.clone()).modifier(
+                        Modifier::new()
+                            .fill_max_width()
+                            .padding(4.0)
+                            .clip_rounded(6.0),
+                    ),
+                    Button("Save JSON to Downloads", save_action.clone()).modifier(
+                        Modifier::new()
+                            .fill_max_width()
+                            .padding(4.0)
+                            .clip_rounded(6.0),
+                    ),
+                    Button("Share JSON", share_action.clone()).modifier(
+                        Modifier::new()
+                            .fill_max_width()
+                            .padding(4.0)
+                            .clip_rounded(6.0),
+                    ),
+                ],
+            ),
             Box(Modifier::new().size(1.0, 8.0)),
             Text(status.get())
                 .size(14.0)
