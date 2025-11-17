@@ -1,0 +1,7 @@
+- add icon
+- Create android-release.yml
+- aarch flag
+- Update README.md
+- rem android/
+- add for saving only
+- init
