@@ -11,8 +11,6 @@ crate-type = ["cdylib"]
 [package.metadata.android]
 package = "dev.mlm.wifi_exporter"
 apk_name = "wifi_exporter"
-target_sdk_version = 34
-min_sdk_version = 26
 build_targets = ["aarch64-linux-android"]
 split_per_abi = true
 
