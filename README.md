@@ -2,7 +2,7 @@
 
 A minimal Android app using the Repose UI (for android-only testing) that:
 
-- Reads saved Wi‑Fi credentials (requires root or Shizuku with root/Sui).
+- Reads saved Wi‑Fi credentials (requires root).
 - Exports as JSON and saves to Downloads (scoped storage via MediaStore on API 29+; app-specific external dir on API 26–28).
 - Shares JSON via Android Sharesheet.
 
@@ -13,11 +13,11 @@ A minimal Android app using the Repose UI (for android-only testing) that:
 3. 
 ## Usage
 
-1. Tap "Export (Root/Shizuku)" and grant root in your su/Shizuku manager.
+1. Tap "Export (Root)" and grant root access in your su manager.
 2. Tap "Save JSON to Downloads" to persist the exported JSON file.
 3. Tap "Share JSON" to open the system Sharesheet.
 
 ## Security
 
 - The app never transmits data off-device; sharing is at your discretion.
-- Root/Shizuku access only used to read local config files.
+- Root access only used to read local config files.
