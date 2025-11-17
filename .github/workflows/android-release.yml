@@ -1,0 +1,303 @@
+name: Android App Releases
+
+on:
+  schedule:
+    - cron: "0 0 1 */2 *" # Every other month on the 1st
+  workflow_dispatch:
+    inputs:
+      upload_releases:
+        description: "Upload releases (create GitHub Release with APKs)"
+        required: true
+        default: true
+        type: boolean
+      mark_prerelease:
+        description: "Mark as prerelease"
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APP_NAME: "Wifi Exporter"
+  APP_SLUG: "wifi-exporter"
+  APPLICATION_ID: "dev.mlm.wifiexporter"
+
+  # Android SDK/NDK
+  ANDROID_API: "35"
+  ANDROID_BUILD_TOOLS: "35.0.0"
+  ANDROID_NDK_VERSION: "28.2.13676358"
+
+  # Rust toolchain
+  RUST_TOOLCHAIN: "1.90.0"
+  ANDROID_TARGETS: "aarch64-linux-android" # armv7-linux-androideabi x86_64-linux-android i686-linux-android"
+
+jobs:
+  prepare-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version_name: ${{ steps.bump.outputs.version_name }}
+      version_code: ${{ steps.bump.outputs.version_code }}
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+      release_notes: ${{ steps.notes.outputs.release-notes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump Cargo version (patch) and set cargo-apk versionCode
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          CARGO_TOML="Cargo.toml"
+
+          # 1) read current version and bump patch
+          OLD_VERSION=$(grep -m1 '^version\s*=\s*"' "$CARGO_TOML" | sed -E 's/.*"([^"]+)".*/\1/')
+          if [[ -z "$OLD_VERSION" ]]; then
+            echo "Could not detect package.version in Cargo.toml" >&2
+            exit 1
+          fi
+          IFS='.' read -r MAJ MIN PAT <<<"$OLD_VERSION"; : "${MAJ:=0}" "${MIN:=0}" "${PAT:=0}"
+          NEW_VERSION="$MAJ.$MIN.$((PAT+1))"
+          sed -i -E "0,/^version\s*=.*/s//version = \"$NEW_VERSION\"/" "$CARGO_TOML"
+
+          # 2) compute cargo-apk versionCode from NEW_VERSION
+          IFS='.' read -r NMAJ NMIN NPAT <<<"$NEW_VERSION"
+          APK_ID=1
+          VERSION_CODE=$(( (APK_ID<<24) | (NMAJ<<16) | (NMIN<<8) | NPAT ))
+
+          # 3) ensure [package.metadata.android.sdk] exists and set version_code = VERSION_CODE
+          if grep -q '^\[package\.metadata\.android\.sdk\]' "$CARGO_TOML"; then
+            if grep -q '^version_code\s*=' "$CARGO_TOML"; then
+              sed -i -E "0,/^version_code\s*=.*/s//version_code = $VERSION_CODE/" "$CARGO_TOML"
+            else
+              awk -v vc="$VERSION_CODE" '
+                BEGIN{printed=0}
+                {print}
+                /^\[package\.metadata\.android\.sdk\]$/ && printed==0 {print "version_code = " vc; printed=1}
+              ' "$CARGO_TOML" > Cargo.toml.new && mv Cargo.toml.new "$CARGO_TOML"
+            fi
+          else
+            {
+              echo ""
+              echo "[package.metadata.android.sdk]"
+              echo "version_code = $VERSION_CODE"
+            } >> "$CARGO_TOML"
+          fi
+
+          echo "version_name=$NEW_VERSION"     >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE"    >> "$GITHUB_OUTPUT"
+          echo "Bumped version: $OLD_VERSION -> $NEW_VERSION; version_code=$VERSION_CODE"
+
+      - name: Generate Release Notes
+        id: notes
+        uses: mlm-games/release-notes-generator@main
+        with:
+          version: ${{ steps.bump.outputs.version_name }}
+          changelog-path: "CHANGELOG.md"
+          version-file-path: "./fastlane/metadata/android/en-US/changelogs/${{ steps.bump.outputs.version_code }}.txt"
+          version-code: "${{ steps.bump.outputs.version_code }}"
+          format: "- {{subject}}"
+          exclude-patterns: "chore:,ci:,docs:,build:,Bump version,Merge pull request,[skip ci]"
+          auto-commit: "false"
+
+      - name: Update Cargo.lock
+        shell: bash
+        run: |
+          set -e
+          cargo update -w
+          git add Cargo.lock || true
+
+      - name: Commit changes
+        id: commit
+        shell: bash
+        run: |
+          set -e
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add Cargo.toml fastlane/metadata/android/en-US/changelogs || true
+          git commit -m "chore: bump to v${{ steps.bump.outputs.version_name }} (code ${{ steps.bump.outputs.version_code }}) [skip ci]" || true
+          git push
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  build-and-release:
+    needs: prepare-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      ANDROID_KEYSTORE_ASC: ${{ secrets.ANDROID_KEYSTORE_ASC }}
+      ANDROID_KEYSTORE_PASSPHRASE: ${{ secrets.ANDROID_KEYSTORE_PASSPHRASE }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-version.outputs.commit_sha }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ env.ANDROID_TARGETS }}
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Set up Android SDK/NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platforms and NDK
+        shell: bash
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-${{ env.ANDROID_API }}" \
+            "build-tools;${{ env.ANDROID_BUILD_TOOLS }}" \
+            "ndk;${{ env.ANDROID_NDK_VERSION }}"
+
+
+      - name: Pin NDK version and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}"       >> "$GITHUB_ENV"
+          echo "Using NDK:"; grep '^Pkg.Revision' "$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}/source.properties" || true
+          "$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" --version | head -2
+
+      - name: Install cargo-apk
+        shell: bash
+        run: cargo install --git https://github.com/mlm-games/cargo-apk.git cargo-apk --locked
+
+      - name: Prepare release keystore for cargo-apk (single-alias keystore)
+        shell: bash
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_JKS_B64 }} # optional (base64 JKS/keystore)
+          KS_ASC: ${{ secrets.ANDROID_KEYSTORE_ASC }} # optional-if-jks-given (ASCII-armored keystore)
+          KS_PASSPHRASE: ${{ secrets.ANDROID_KEYSTORE_PASSPHRASE }} # req. if ASC is symmetric
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }} # required if keystore has >1 alias
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} # store==key password (single)
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+
+          # 1) Materialize keystore at ./release.keystore
+          if [[ -n "${KS_B64:-}" ]]; then
+            printf '%s' "$KS_B64" | base64 -d > release.keystore
+          elif [[ -n "${KS_ASC:-}" && "${KS_ASC}" == *"BEGIN PGP MESSAGE"* ]]; then
+            if [[ -z "${KS_PASSPHRASE:-}" ]]; then
+              echo "Missing ANDROID_KEYSTORE_PASSPHRASE for ASC" >&2; exit 1
+            fi
+            printf '%s' "$KS_ASC" > release.keystore.asc
+            gpg --batch --yes --pinentry-mode loopback \
+                --passphrase "$KS_PASSPHRASE" \
+                --decrypt release.keystore.asc > release.keystore
+            rm -f release.keystore.asc
+          else
+            echo "No keystore secret; generating temporary keystore for CI"
+            keytool -genkeypair -noprompt \
+              -alias temp-key \
+              -dname "CN=CI, OU=CI, O=CI, L=Earth, S=NA, C=US" \
+              -keystore release.keystore \
+              -storepass changeit \
+              -keypass changeit \
+              -keyalg RSA -keysize 2048 -validity 10000
+            echo "CARGO_APK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
+            echo "CARGO_APK_RELEASE_KEYSTORE_PASSWORD=changeit"     >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          if [[ -z "${KS_PASS:-}" ]]; then
+            echo "ANDROID_KEYSTORE_PASSWORD must be set (store==key, single password)" >&2
+            exit 1
+          fi
+
+          # 2) If multiple aliases exist, require ANDROID_KEY_ALIAS and filter to that entry
+          alias_lines=$(keytool -list -v -keystore release.keystore -storepass "$KS_PASS" 2>/dev/null | grep -E '^Alias name:' || true)
+          alias_count=$(printf "%s\n" "$alias_lines" | sed '/^\s*$/d' | wc -l | tr -d ' ')
+          if [[ "$alias_count" == "" ]]; then
+            echo "Failed to read keystore aliases (bad password or corrupt keystore?)" >&2
+            exit 1
+          fi
+          if [[ "$alias_count" -gt 1 ]]; then
+            if [[ -z "${KS_ALIAS:-}" ]]; then
+              echo "The keystore contains multiple aliases; set ANDROID_KEY_ALIAS to one of the following:" >&2
+              echo "$alias_lines" | sed 's/^Alias name: *//'
+              exit 1
+            fi
+            echo "Keystore has $alias_count entries; keeping alias '$KS_ALIAS'"
+            keytool -importkeystore -noprompt \
+              -srckeystore  release.keystore     -srcstorepass  "$KS_PASS" -srcalias  "$KS_ALIAS" \
+              -destkeystore release.single.jks   -deststorepass "$KS_PASS" -destalias "$KS_ALIAS" -destkeypass "$KS_PASS" \
+              -deststoretype JKS
+            mv release.single.jks release.keystore
+          fi
+
+          # 3) Export env for cargo-apk (it will sign during build)
+          echo "CARGO_APK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
+          echo "CARGO_APK_RELEASE_KEYSTORE_PASSWORD=$KS_PASS"      >> "$GITHUB_ENV"
+
+      - name: Stage source into /tmp/build/src
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/build/src
+          rsync -a --delete "$GITHUB_WORKSPACE"/ /tmp/build/src/
+
+      - name: Build APKs (all ABIs, signed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER="${{ needs.prepare-version.outputs.version_name }}"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
+
+          abi_of() {
+            case "$1" in
+              aarch64-linux-android) echo "arm64-v8a" ;;
+              armv7-linux-androideabi) echo "armeabi-v7a" ;;
+              x86_64-linux-android) echo "x86_64" ;;
+              i686-linux-android) echo "x86" ;;
+              *) echo "$1" ;;
+            esac
+          }
+
+          export SOURCE_DATE_EPOCH=$(git -C /tmp/build/src log -1 --format=%ct)
+
+          pushd /tmp/build/src >/dev/null
+          for triple in ${{ env.ANDROID_TARGETS }}; do
+            echo "Building for $triple"
+            cargo apk build --release --deterministic --target "$triple"
+            OUT_DIR="target/$triple/release/apk"; [ -d "$OUT_DIR" ] || OUT_DIR="target/release/apk"
+            APK_SRC=$(ls -1t "$OUT_DIR"/*.apk | head -n1)
+            ABI=$(abi_of "$triple")
+            DEST="$GITHUB_WORKSPACE/artifacts/${{ env.APP_SLUG }}-${VER}-${ABI}.apk"
+            cp "$APK_SRC" "$DEST"
+            echo "Built $DEST"
+          done
+          popd >/dev/null
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ needs.prepare-version.outputs.version_name }}
+          path: artifacts/*
+
+      - name: Create GitHub Release with APKs
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload_releases == true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          name: ${{ env.APP_NAME }} ${{ needs.prepare-version.outputs.version_name }}
+          tag_name: v${{ needs.prepare-version.outputs.version_name }}
+          target_commitish: ${{ needs.prepare-version.outputs.commit_sha }}
+          prerelease: ${{ inputs.mark_prerelease }}
+          body: ${{ needs.prepare-version.outputs.release_notes }}
