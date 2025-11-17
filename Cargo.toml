@@ -9,7 +9,7 @@ name = "wifi_exporter_repose"
 crate-type = ["cdylib"]
 
 [package.metadata.android]
-package = "dev.example.wifi_exporter"
+package = "dev.mlm.wifi_exporter"
 apk_name = "wifi_exporter"
 target_sdk_version = 34
 min_sdk_version = 26
@@ -42,3 +42,5 @@ codegen-units = 1
 
 [package.metadata.android.sdk]
 version_code = 16777473
+min_sdk_version = 26
+target_sdk_version = 35
