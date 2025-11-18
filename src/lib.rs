@@ -2,7 +2,7 @@
 mod android_jni;
 mod parsers;
 
-use android_jni::{share_text, shizuku_cat, shizuku_ensure_permission, write_json_via_mediastore};
+use android_jni::{share_text, write_json_via_mediastore};
 use log::{LevelFilter, info, warn};
 use once_cell::sync::OnceCell;
 use parsers::{
@@ -26,52 +26,15 @@ fn app(_s: &mut Scheduler) -> View {
         let status = status.clone();
         let json_buf = json_buf.clone();
         move || {
-            status.set("Trying Shizuku (if available)…".into());
+            status.set("Requesting root via su…".into());
 
-            let shizuku_ok = ANDROID_APP
-                .get()
-                .and_then(|app| shizuku_ensure_permission(app, 24).ok())
-                .map(|c| c == 0)
-                .unwrap_or(false);
-
+            // Root-only read of Wi‑Fi config files
             let mut list: Option<Vec<WifiCred>> = None;
-
-            if shizuku_ok {
-                if let Some(app) = ANDROID_APP.get() {
-                    let candidates = [
-                        "/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml",
-                        "/data/misc/wifi/WifiConfigStore.xml",
-                        "/data/misc/wifi/WifiConfigStore.conf",
-                        "/data/misc/wifi/wpa_supplicant.conf",
-                    ];
-                    for p in candidates {
-                        if let Ok(Some(text)) = shizuku_cat(app, p) {
-                            if p.ends_with(".xml") || text.contains("<Network>") {
-                                let v = parse_wifi_configstore_xml(&text);
-                                if !v.is_empty() {
-                                    list = Some(v);
-                                    break;
-                                }
-                            } else if text.contains("network={") {
-                                let v = parse_wpa_supplicant(&text);
-                                if !v.is_empty() {
-                                    list = Some(v);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if list.is_none() {
-                status.set("Shizuku path unavailable; trying root…".into());
-                match try_read_with_su() {
-                    Ok(v) => list = Some(v),
-                    Err(e) => {
-                        warn!("su export failed: {e:?}");
-                        status.set("Failed: root/Shizuku not granted or store not found.".into());
-                    }
+            match try_read_with_su() {
+                Ok(v) => list = Some(v),
+                Err(e) => {
+                    warn!("su export failed: {e:?}");
+                    status.set("Failed: root not granted or store not found.".into());
                 }
             }
 
@@ -140,7 +103,7 @@ fn app(_s: &mut Scheduler) -> View {
             Text("Wi‑Fi Passwords Exporter")
                 .size(20.0)
                 .color(Color::from_hex("#FFFFFF")),
-            Text("Root or Shizuku-with-root is required to read saved Wi‑Fi configs.")
+            Text("Root is required to read saved Wi‑Fi configs.")
                 .size(14.0)
                 .color(Color::from_hex("#AAAAAA")),
             Box(Modifier::new().size(1.0, 12.0)),
@@ -148,13 +111,13 @@ fn app(_s: &mut Scheduler) -> View {
                 2,
                 Modifier::new().fill_max_width().padding(4.0),
                 vec![
-                    Button("Export (Root/Shizuku)", export_action.clone()).modifier(
+                    Button("Export (Root)", export_action.clone()).modifier(
                         Modifier::new()
                             .fill_max_width()
                             .padding(4.0)
                             .clip_rounded(6.0),
                     ),
-                    Button("Save JSON to Downloads", save_action.clone()).modifier(
+                    Button("Save to Downloads", save_action.clone()).modifier(
                         Modifier::new()
                             .fill_max_width()
                             .padding(4.0)

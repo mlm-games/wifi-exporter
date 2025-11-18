@@ -14,7 +14,7 @@ A minimal Android app using the Repose UI (for android-only testing) that:
 ## Usage
 
 1. Tap "Export (Root)" and grant root access in your su manager.
-2. Tap "Save JSON to Downloads" to persist the exported JSON file.
+2. Tap "Save to Downloads" to persist the exported JSON file.
 3. Tap "Share JSON" to open the system Sharesheet.
 
 ## Security
