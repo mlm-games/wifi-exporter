@@ -1,0 +1,3 @@
+Export your WiFi passwords (as json) or view all of them at once. 
+
+Needs root permission to work.
