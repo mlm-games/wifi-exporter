@@ -5,6 +5,7 @@ A minimal Android app using the Repose UI (for android-only testing) that:
 - Reads saved Wi‑Fi credentials (requires root).
 - Exports as JSON and saves to Downloads (scoped storage via MediaStore on API 29+; app-specific external dir on API 26–28).
 - Shares JSON via Android Sharesheet.
+- The app is meant to be an example for Repose UI, so will mostly be single featured (to keep jni calls and breakages to minimum).
 
 ## Build
 
