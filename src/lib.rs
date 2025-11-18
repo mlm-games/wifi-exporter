@@ -28,7 +28,7 @@ fn app(_s: &mut Scheduler) -> View {
         move || {
             status.set("Requesting root via su…".into());
 
-            // Root-only read of Wi‑Fi config files
+            // Root-only read of Wi-Fi config files
             let mut list: Option<Vec<WifiCred>> = None;
             match try_read_with_su() {
                 Ok(v) => list = Some(v),
@@ -85,7 +85,7 @@ fn app(_s: &mut Scheduler) -> View {
                 return;
             }
             if let Some(app) = ANDROID_APP.get() {
-                if let Err(e) = share_text(app, "Wi‑Fi Passwords (JSON)", &json) {
+                if let Err(e) = share_text(app, "Wi-Fi Passwords (JSON)", &json) {
                     warn!("Share failed: {e:?}");
                     status.set("Share failed; see logcat.".into());
                 }
@@ -99,38 +99,28 @@ fn app(_s: &mut Scheduler) -> View {
         Modifier::new()
             .fill_max_size()
             .background(Color::from_hex("#121212")),
-        Column(Modifier::new().fill_max_size().padding(16.0)).child((
-            Text("Wi‑Fi Passwords Exporter")
+        Column(Modifier::new().fill_max_size().padding(32.0)).child((
+            Text("Wi-Fi Passwords Exporter")
                 .size(20.0)
                 .color(Color::from_hex("#FFFFFF")),
-            Text("Root is required to read saved Wi‑Fi configs.")
+            Text("Root is required to read saved Wi-Fi configs.")
                 .size(14.0)
                 .color(Color::from_hex("#AAAAAA")),
             Box(Modifier::new().size(1.0, 12.0)),
-            repose_ui::Grid(
-                2,
-                Modifier::new().fill_max_width().padding(4.0),
-                vec![
-                    Button("Export (Root)", export_action.clone()).modifier(
-                        Modifier::new()
-                            .fill_max_width()
-                            .padding(4.0)
-                            .clip_rounded(6.0),
-                    ),
-                    Button("Save to Downloads", save_action.clone()).modifier(
-                        Modifier::new()
-                            .fill_max_width()
-                            .padding(4.0)
-                            .clip_rounded(6.0),
-                    ),
-                    Button("Share JSON", share_action.clone()).modifier(
-                        Modifier::new()
-                            .fill_max_width()
-                            .padding(4.0)
-                            .clip_rounded(6.0),
-                    ),
-                ],
-            ),
+            Column(
+                Modifier::new()
+                    .fill_max_width()
+                    .padding(8.0)
+                    .grid(2, 8.0, 8.0),
+            )
+            .child(vec![
+                Button(Text("Export (Root)"), export_action.clone())
+                    .modifier(Modifier::new().fill_max_width().clip_rounded(6.0)),
+                Button(Text("Save"), save_action.clone())
+                    .modifier(Modifier::new().fill_max_width().clip_rounded(6.0)),
+                Button(Text("Share JSON"), share_action.clone())
+                    .modifier(Modifier::new().fill_max_width().clip_rounded(6.0)),
+            ]),
             Box(Modifier::new().size(1.0, 8.0)),
             Text(status.get())
                 .size(14.0)

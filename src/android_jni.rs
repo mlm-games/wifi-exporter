@@ -10,7 +10,7 @@ static JAVA_VM: OnceCell<JavaVM> = OnceCell::new();
 
 fn get_env_and_activity(app: &AndroidApp) -> anyhow::Result<(jni::AttachGuard, JObject)> {
     let vm = JAVA_VM.get_or_try_init(|| {
-        let vm_ptr = unsafe { app.vm_as_ptr() as *mut c_void };
+        let vm_ptr = app.vm_as_ptr() as *mut c_void;
         // Safety: provided by the Android runtime; do not free.
         unsafe { JavaVM::from_raw(vm_ptr.cast()) }
     })?;
