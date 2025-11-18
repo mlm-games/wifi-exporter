@@ -40,5 +40,5 @@ codegen-units = 1
 
 [package.metadata.android.sdk]
 version_code = 16777476
-min_sdk_version = 24
+min_sdk_version = 26
 target_sdk_version = 35
