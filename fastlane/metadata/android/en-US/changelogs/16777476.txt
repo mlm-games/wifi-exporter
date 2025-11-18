@@ -1,0 +1,2 @@
+- try reducing to min sdk 24
+- Update README.md
