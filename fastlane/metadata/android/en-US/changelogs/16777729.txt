@@ -1,0 +1,2 @@
+- non android/ build
+- revert min sdk
