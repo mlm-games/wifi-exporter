@@ -116,7 +116,7 @@ fn app(_s: &mut Scheduler) -> View {
             .child(vec![
                 Button(Text("Export (Root)"), export_action.clone())
                     .modifier(Modifier::new().fill_max_width().clip_rounded(6.0)),
-                Button(Text("Save"), save_action.clone())
+                Button(Text("Save to Downloads"), save_action.clone())
                     .modifier(Modifier::new().fill_max_width().clip_rounded(6.0)),
                 Button(Text("Share JSON"), share_action.clone())
                     .modifier(Modifier::new().fill_max_width().clip_rounded(6.0)),

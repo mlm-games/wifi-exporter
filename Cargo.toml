@@ -26,9 +26,9 @@ jni = "0.21"
 ndk = "0.9"
 once_cell = "1.19"
 
-repose-core = "0.7.0"
-repose-ui = "0.7.0"
-repose-platform = { version = "0.7.0", features = ["android"] }
+repose-core = "0.7.1"
+repose-ui = "0.7.1"
+repose-platform = { version = "0.7.1", features = ["android"] }
 
 # repose-core = { path = "../repose/crates/repose-core" }
 # repose-ui = { path = "../repose/crates/repose-ui" }
