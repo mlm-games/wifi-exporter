@@ -1,0 +1,3 @@
+[submodule "cargo-apk"]
+	path = cargo-apk
+	url = https://github.com/mlm-games/cargo-apk.git
