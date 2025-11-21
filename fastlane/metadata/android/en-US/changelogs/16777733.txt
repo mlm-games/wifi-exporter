@@ -1,0 +1,2 @@
+- add icon.xml for home screen icon display
+- Revert "Add cargo-apk as submodule"
