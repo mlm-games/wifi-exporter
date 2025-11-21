@@ -275,7 +275,7 @@ jobs:
           pushd /tmp/build/src >/dev/null
           for triple in ${{ env.ANDROID_TARGETS }}; do
             echo "Building for $triple"
-            cargo apk build --release --deterministic --target "$triple"
+            cargo rapk build --release --deterministic --target "$triple"
             OUT_DIR="target/$triple/release/apk"; [ -d "$OUT_DIR" ] || OUT_DIR="target/release/apk"
             APK_SRC=$(ls -1t "$OUT_DIR"/*.apk | head -n1)
             ABI=$(abi_of "$triple")
