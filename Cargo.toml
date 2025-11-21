@@ -1,6 +1,6 @@
 [package]
 name = "wifi_exporter_repose"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2024"
 publish = false
 
@@ -48,6 +48,6 @@ lto = "thin"
 codegen-units = 1
 
 [package.metadata.android.sdk]
-version_code = 16777735
+version_code = 16777736
 min_sdk_version = 26
 target_sdk_version = 35
