@@ -2476,7 +2476,7 @@ dependencies = [
 
 [[package]]
 name = "wifi_exporter_repose"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "android_logger",
  "anyhow",
