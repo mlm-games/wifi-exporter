@@ -174,9 +174,9 @@ jobs:
           echo "Using NDK:"; grep '^Pkg.Revision' "$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}/source.properties" || true
           "$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" --version | head -2
 
-      - name: Install cargo-apk
+      - name: Install cargo-rapk
         shell: bash
-        run: cargo install --git https://github.com/mlm-games/cargo-apk.git cargo-apk --locked
+        run: cargo install --git https://github.com/mlm-games/cargo-rapk.git cargo-rapk --rev 5345951e554026520b3be078ba81f039cc606efe --locked
 
       - name: Prepare release keystore for cargo-apk (single-alias keystore)
         shell: bash
