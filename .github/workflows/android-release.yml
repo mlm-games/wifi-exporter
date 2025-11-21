@@ -243,8 +243,8 @@ jobs:
           fi
 
           # 3) Export env for cargo-apk (it will sign during build)
-          echo "CARGO_APK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
-          echo "CARGO_APK_RELEASE_KEYSTORE_PASSWORD=$KS_PASS"      >> "$GITHUB_ENV"
+          echo "CARGO_RAPK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
+          echo "CARGO_RAPK_RELEASE_KEYSTORE_PASSWORD=$KS_PASS"      >> "$GITHUB_ENV"
 
       - name: Stage source into /tmp/build/src
         shell: bash
