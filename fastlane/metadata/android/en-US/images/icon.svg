@@ -29,7 +29,7 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      inkscape:zoom="4.7950679"
-     inkscape:cx="77.892536"
+     inkscape:cx="77.788262"
      inkscape:cy="68.090798"
      inkscape:window-width="1536"
      inkscape:window-height="902"
@@ -45,7 +45,7 @@
      id="layer1">
     <path
        id="rect1"
-       style="fill:#ececec;stroke:#666666;stroke-width:8.73078;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+       style="fill:#cccccc;stroke:#666666;stroke-width:8.73078;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke;opacity:1;fill-opacity:0.1"
        d="m 32.107805,26.068453 c 6.646165,-9.03029 20.90395,-10.010395 32.116334,-10 11.146028,0.01033 25.309274,1.01703 31.907782,10 7.201909,9.804414 9.374019,29.06732 -0.417095,36.287286 -9.077632,6.693838 -20.629047,-9.822823 -31.907783,-9.791452 -11.079677,0.03082 -22.763563,16.55087 -31.699238,10 -9.811166,-7.192705 -7.210992,-26.698101 0,-36.495834 z"
        sodipodi:nodetypes="sssssss" />
     <g

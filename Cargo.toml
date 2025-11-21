@@ -13,10 +13,12 @@ package = "dev.mlm.wifi_exporter"
 apk_name = "wifi_exporter"
 build_targets = ["aarch64-linux-android"]
 split_per_abi = true
+resources = "packaging/res"
 
 [package.metadata.android.application]
-label = "Wi‑Fi Exporter"
+label = "WiFi Exporter"
 fullscreen = true
+icon = "@drawable/icon"
 
 [dependencies]
 anyhow = "1"
