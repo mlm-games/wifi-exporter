@@ -176,7 +176,7 @@ jobs:
 
       - name: Install cargo-rapk
         shell: bash
-        run: cargo install --git https://github.com/mlm-games/cargo-rapk.git cargo-rapk --rev 192cde993b14a9239573df027c82a1af692d4ab6 --locked
+        run: cargo install --git https://github.com/mlm-games/cargo-rapk.git cargo-rapk --tag v0.13.0 --locked
 
       - name: Prepare release keystore for cargo-apk (single-alias keystore)
         shell: bash
