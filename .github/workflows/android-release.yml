@@ -176,7 +176,7 @@ jobs:
 
       - name: Install cargo-rapk
         shell: bash
-        run: cargo install --git https://github.com/mlm-games/cargo-rapk.git cargo-apk --rev 9ac2c84950f1da14053de13df0f41ec44b559c96 --locked
+        run: cargo install --git https://github.com/mlm-games/cargo-rapk.git cargo-rapk --rev 192cde993b14a9239573df027c82a1af692d4ab6 --locked
 
       - name: Prepare release keystore for cargo-apk (single-alias keystore)
         shell: bash
@@ -211,8 +211,8 @@ jobs:
               -storepass changeit \
               -keypass changeit \
               -keyalg RSA -keysize 2048 -validity 10000
-            echo "CARGO_APK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
-            echo "CARGO_APK_RELEASE_KEYSTORE_PASSWORD=changeit"     >> "$GITHUB_ENV"
+            echo "CARGO_RAPK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
+            echo "CARGO_RAPK_RELEASE_KEYSTORE_PASSWORD=changeit"     >> "$GITHUB_ENV"
             exit 0
           fi
 
@@ -243,8 +243,8 @@ jobs:
           fi
 
           # 3) Export env for cargo-apk (it will sign during build)
-          echo "CARGO_APK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
-          echo "CARGO_APK_RELEASE_KEYSTORE_PASSWORD=$KS_PASS"      >> "$GITHUB_ENV"
+          echo "CARGO_RAPK_RELEASE_KEYSTORE=$PWD/release.keystore" >> "$GITHUB_ENV"
+          echo "CARGO_RAPK_RELEASE_KEYSTORE_PASSWORD=$KS_PASS"      >> "$GITHUB_ENV"
 
       - name: Stage source into /tmp/build/src
         shell: bash
@@ -275,7 +275,8 @@ jobs:
           pushd /tmp/build/src >/dev/null
           for triple in ${{ env.ANDROID_TARGETS }}; do
             echo "Building for $triple"
-            cargo apk build --release --deterministic --target "$triple"
+            export CARGO_RAPK_PAGE_SIZE_KB=4
+            cargo rapk build --release --deterministic --target "$triple"
             OUT_DIR="target/$triple/release/apk"; [ -d "$OUT_DIR" ] || OUT_DIR="target/release/apk"
             APK_SRC=$(ls -1t "$OUT_DIR"/*.apk | head -n1)
             ABI=$(abi_of "$triple")
