@@ -1,0 +1,1 @@
+- Update cargo-rapk installation to use tag v0.13.0
