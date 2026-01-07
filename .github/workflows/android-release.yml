@@ -31,7 +31,7 @@ env:
   ANDROID_NDK_VERSION: "28.2.13676358"
 
   # Rust toolchain
-  RUST_TOOLCHAIN: "1.90.0"
+  RUST_TOOLCHAIN: "1.92.0"
   ANDROID_TARGETS: "aarch64-linux-android" # armv7-linux-androideabi x86_64-linux-android i686-linux-android"
 
 jobs:
