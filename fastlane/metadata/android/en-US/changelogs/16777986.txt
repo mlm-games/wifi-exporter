@@ -1,0 +1,2 @@
+- bump rust toolchain ver to 1.92
+- add export logic (fix #1)
