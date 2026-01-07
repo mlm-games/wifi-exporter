@@ -1,25 +1,122 @@
 use anyhow::Context;
 use log::{info, warn};
+use serde::{Deserialize, Serialize};
 use std::process::Command;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct WifiCred {
     pub ssid: String,
+    #[serde(alias = "password")]
     pub pass: Option<String>,
 }
 
-pub fn su_cat(path: &str) -> anyhow::Result<String> {
-    let cmd = format!("cat '{}' 2>/dev/null", path);
+fn shell_escape(s: &str) -> String {
+    s.replace("'", "'\\''")
+}
+
+fn run_su_cmd(cmd: &str) -> anyhow::Result<String> {
     let out = Command::new("su")
         .arg("-c")
         .arg(cmd)
         .output()
-        .context("exec su")?;
-    if out.status.success() && !out.stdout.is_empty() {
-        Ok(String::from_utf8_lossy(&out.stdout).to_string())
+        .context("Failed to execute su command")?;
+
+    let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+
+    if out.status.success() {
+        if stdout.is_empty() {
+            Ok("OK".to_string())
+        } else {
+            Ok(stdout)
+        }
     } else {
-        Err(anyhow::anyhow!("su cat failed or empty"))
+        Err(anyhow::anyhow!(
+            "{}",
+            if stderr.is_empty() { &stdout } else { &stderr }
+        ))
     }
+}
+
+pub fn su_cat(path: &str) -> anyhow::Result<String> {
+    let cmd = format!("cat '{}' 2>/dev/null", path);
+    run_su_cmd(&cmd)
+}
+
+pub fn get_api_level() -> i32 {
+    Command::new("getprop")
+        .arg("ro.build.version.sdk")
+        .output()
+        .ok()
+        .and_then(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .trim()
+                .parse::<i32>()
+                .ok()
+        })
+        .unwrap_or(26)
+}
+
+/// Adds a single network to system (Android 11+ only)
+pub fn su_add_network(cred: &WifiCred) -> anyhow::Result<String> {
+    let api = get_api_level();
+    if api < 30 {
+        return Err(anyhow::anyhow!(
+            "Requires Android 11+ (current: API {})",
+            api
+        ));
+    }
+
+    let ssid = shell_escape(&cred.ssid);
+    let pass = cred.pass.as_deref().unwrap_or("");
+
+    let cmd = if pass.is_empty() {
+        format!("cmd wifi add-network '{}' open", ssid)
+    } else {
+        let esc_pass = shell_escape(pass);
+        format!("cmd wifi add-network '{}' wpa2 '{}'", ssid, esc_pass)
+    };
+
+    run_su_cmd(&cmd)
+}
+
+/// Bulk import all networks to system (Android 11+ only)
+pub fn su_import_all(creds: &[WifiCred]) -> (usize, usize, Vec<(String, String)>) {
+    let mut success = 0;
+    let mut failed = 0;
+    let mut errors = Vec::new();
+
+    for cred in creds {
+        match su_add_network(cred) {
+            Ok(_) => success += 1,
+            Err(e) => {
+                failed += 1;
+                errors.push((cred.ssid.clone(), e.to_string()));
+            }
+        }
+    }
+
+    (success, failed, errors)
+}
+
+pub fn parse_imported_json(json: &str) -> anyhow::Result<Vec<WifiCred>> {
+    if let Ok(creds) = serde_json::from_str::<Vec<WifiCred>>(json) {
+        return Ok(creds);
+    }
+
+    #[derive(Deserialize)]
+    struct Wrapped {
+        networks: Vec<WifiCred>,
+    }
+    if let Ok(wrapped) = serde_json::from_str::<Wrapped>(json) {
+        return Ok(wrapped.networks);
+    }
+
+    Err(anyhow::anyhow!("Invalid JSON format"))
+}
+
+pub fn build_json(creds: &[WifiCred]) -> String {
+    serde_json::to_string_pretty(creds).unwrap_or_else(|_| "[]".to_string())
 }
 
 pub fn parse_wifi_configstore_xml(xml: &str) -> Vec<WifiCred> {
@@ -44,8 +141,7 @@ fn find_string(hay: &str, name: &str) -> Option<String> {
     let start = i + needle.len();
     let rest = &hay[start..];
     let end = rest.find("</string>")?;
-    let val = &rest[..end];
-    Some(html_unescape(val.trim()))
+    Some(html_unescape(rest[..end].trim()))
 }
 
 fn html_unescape(s: &str) -> String {
@@ -104,25 +200,6 @@ pub fn parse_wpa_supplicant(conf: &str) -> Vec<WifiCred> {
     out
 }
 
-pub fn build_json(creds: &[WifiCred]) -> String {
-    let mut s = String::from("[\n");
-    for (i, c) in creds.iter().enumerate() {
-        let esc = |t: &str| {
-            t.replace('\\', "\\\\")
-                .replace('"', "\\\"")
-                .replace('\n', "\\n")
-        };
-        s.push_str(&format!(
-            "  {{\"ssid\":\"{}\",\"password\":\"{}\"}}{}",
-            esc(&c.ssid),
-            esc(c.pass.as_deref().unwrap_or("")),
-            if i + 1 == creds.len() { "\n" } else { ",\n" }
-        ));
-    }
-    s.push(']');
-    s
-}
-
 pub fn try_read_with_su() -> anyhow::Result<Vec<WifiCred>> {
     let candidates = [
         "/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml",
@@ -132,7 +209,7 @@ pub fn try_read_with_su() -> anyhow::Result<Vec<WifiCred>> {
     ];
     for p in candidates {
         if let Ok(text) = su_cat(p) {
-            info!("Read candidate via su: {}", p);
+            info!("Read config via su: {}", p);
             if p.ends_with(".xml") || text.contains("<Network>") {
                 let v = parse_wifi_configstore_xml(&text);
                 if !v.is_empty() {

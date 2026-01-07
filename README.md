@@ -22,3 +22,23 @@ A minimal Android app using the Repose UI (for android-only testing) that:
 
 - The app never transmits data off-device; sharing is at your discretion.
 - Root access only used to read local config files.
+
+### Import to New Device (Android 11+ only)
+
+1. Copy your exported JSON file to the new device
+2. Rename it to `wifi_import.json`
+3. Place it in the **Downloads** folder (`/sdcard/Download/`)
+4. Open the app and tap **"Load File"**
+5. Review the networks in the list
+6. Tap **"Import All to System"** to add all networks
+   - Or tap **+** next to individual networks
+
+> **Note:** On Android 8-10, import buttons will be grayed out. You can still view and re-export passwords.
+
+### JSON Format
+
+```json
+[
+  {"ssid": "MyNetwork", "pass": "password123"},
+  {"ssid": "OpenNetwork", "pass": null}
+]

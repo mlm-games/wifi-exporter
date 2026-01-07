@@ -301,4 +301,4 @@ jobs:
           tag_name: v${{ needs.prepare-version.outputs.version_name }}
           target_commitish: ${{ needs.prepare-version.outputs.commit_sha }}
           prerelease: ${{ inputs.mark_prerelease }}
-          body: ${{ needs.prepare-version.outputs.release_notes }}
+          body_path: "./fastlane/metadata/android/en-US/changelogs/${{ needs.prepare-version.outputs.version_code }}.txt"
