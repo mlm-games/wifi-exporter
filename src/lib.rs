@@ -306,7 +306,7 @@ fn network_list(creds: Vec<WifiCred>, status: Signal<String>, can_import: bool) 
                         Modifier::new()
                             .size(40.0, 40.0)
                             .background(btn_color)
-                            .clip_rounded(20.0),
+                            .clip_rounded(15.0),
                     ),
                     Space(Modifier::new().width(20.0)),
                 ])

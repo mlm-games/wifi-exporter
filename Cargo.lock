@@ -427,9 +427,9 @@ dependencies = [
 
 [[package]]
 name = "cosmic-text"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "173852283a9a57a3cbe365d86e74dc428a09c50421477d5ad6fe9d9509e37737"
+checksum = "c4cadaea21e24c49c0c82116f2b465ae6a49d63c90e428b0f8d9ae1f638ac91f"
 dependencies = [
  "bitflags 2.10.0",
  "fontdb",
@@ -439,7 +439,7 @@ dependencies = [
  "rangemap",
  "rustc-hash",
  "self_cell",
- "skrifa",
+ "skrifa 0.39.0",
  "smol_str",
  "swash",
  "sys-locale",
@@ -750,14 +750,14 @@ dependencies = [
 
 [[package]]
 name = "harfrust"
-version = "0.3.2"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92c020db12c71d8a12a3fe7607873cade3a01a6287e29d540c8723276221b9d8"
+checksum = "e0caaee032384c10dd597af4579c67dee16650d862a9ccbe1233ff1a379abc07"
 dependencies = [
  "bitflags 2.10.0",
  "bytemuck",
  "core_maths",
- "read-fonts",
+ "read-fonts 0.36.0",
  "smallvec",
 ]
 
@@ -1588,6 +1588,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6717cf23b488adf64b9d711329542ba34de147df262370221940dfabc2c91358"
 dependencies = [
  "bytemuck",
+ "font-types",
+]
+
+[[package]]
+name = "read-fonts"
+version = "0.36.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5eaa2941a4c05443ee3a7b26ab076a553c343ad5995230cc2b1d3e993bdc6345"
+dependencies = [
+ "bytemuck",
  "core_maths",
  "font-types",
 ]
@@ -1656,9 +1666,9 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "repose-core"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7075cc367aa5f755188d1a0aee52fa202a9f2f96119389ad414bc44c2e1d0a5"
+checksum = "b431998716a5d4828b408a4d24da02e9bafcc0128a23f4455c53bb395f9cfc6b"
 dependencies = [
  "bitflags 2.10.0",
  "log",
@@ -1672,9 +1682,9 @@ dependencies = [
 
 [[package]]
 name = "repose-devtools"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "645052043f564e0254d3bf8b0ff54720600dd0d6e7f7b34011057f422b0c9e52"
+checksum = "0dfb378cfbc8f783e6c996057b7eefb99108de2705b177373aec4a26b27dfb15"
 dependencies = [
  "log",
  "repose-core",
@@ -1683,9 +1693,9 @@ dependencies = [
 
 [[package]]
 name = "repose-navigation"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dc2d37eca3d8a29452d61d0ef671053b445c3627f3023687757e0bda1437531"
+checksum = "da00b8251914793d1a11a1a5ee09f2966e4571c58ecd0257280555bf4580fb15"
 dependencies = [
  "log",
  "repose-core",
@@ -1696,9 +1706,9 @@ dependencies = [
 
 [[package]]
 name = "repose-platform"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b49933ae7d5890d1f5c255677495a2fd19c71ced4d2cfbe35c349be75589f85"
+checksum = "071b4e281ecb5a327c0b6ecc82c1ff2822211654b3e301bcc0ed767dac8da22c"
 dependencies = [
  "anyhow",
  "clipawl",
@@ -1722,9 +1732,9 @@ dependencies = [
 
 [[package]]
 name = "repose-render-wgpu"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2f4255b6794a219d5b453bf7a9257f70b685261ce50dd6ff52022a9108ebab9"
+checksum = "a5449a99f944cc72da82c537fb577c30ee8a4cdc69cf3856de44a07b8dac90fc"
 dependencies = [
  "ab_glyph",
  "anyhow",
@@ -1742,9 +1752,9 @@ dependencies = [
 
 [[package]]
 name = "repose-text"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c6e9706116357309bb25c1d62a28a645fcfb635069173ce6caeab23fb0acb8"
+checksum = "310b66f49ee14488a82fe5b20ceeae93d700db102d7c569fb91cd5b3d0220bc4"
 dependencies = [
  "ahash",
  "cosmic-text",
@@ -1755,9 +1765,9 @@ dependencies = [
 
 [[package]]
 name = "repose-ui"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6cb45d18053f7d0011b632c72193a35a0172a5fd36084eadd1d6202e5aac4df"
+checksum = "1f49419cae114eb96323d0165eb2f7f42f834510add878119f3096896f08b4d6"
 dependencies = [
  "ab_glyph",
  "fontdb",
@@ -1915,7 +1925,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c31071dedf532758ecf3fed987cdb4bd9509f900e026ab684b4ecb81ea49841"
 dependencies = [
  "bytemuck",
- "read-fonts",
+ "read-fonts 0.35.0",
+]
+
+[[package]]
+name = "skrifa"
+version = "0.39.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c9eb0b904a04d09bd68c65d946617b8ff733009999050f3b851c32fb3cfb60e"
+dependencies = [
+ "bytemuck",
+ "read-fonts 0.36.0",
 ]
 
 [[package]]
@@ -2000,7 +2020,7 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47846491253e976bdd07d0f9cc24b7daf24720d11309302ccbbc6e6b6e53550a"
 dependencies = [
- "skrifa",
+ "skrifa 0.37.0",
  "yazi",
  "zeno",
 ]
