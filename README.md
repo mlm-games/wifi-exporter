@@ -7,6 +7,7 @@ A minimal Android app using the Repose UI (for android-only testing) that:
 - Shares JSON via Android Sharesheet.
 - The app is meant to be an example for Repose UI, so will mostly be single featured (to keep jni calls and breakages to minimum).
 
+     
 ## Build
 
 1. Install `cargo-apk` (or `cargo-ndk`) and Android NDK/SDK.
@@ -42,3 +43,9 @@ A minimal Android app using the Repose UI (for android-only testing) that:
   {"ssid": "MyNetwork", "pass": "password123"},
   {"ssid": "OpenNetwork", "pass": null}
 ]
+```
+
+<p align="center">
+  <a href="https://f-droid.org/packages/dev.mlm.wifi_exporter/">
+    <img src="https://f-droid.org/badge/get-it-on.png" height="80" alt="Get it on F-Droid">
+</p>
