@@ -10,6 +10,7 @@ use parsers::{
     su_import_all, try_read_with_su,
 };
 use repose_core::prelude::*;
+use repose_platform::RenderContext;
 use repose_platform::android::run_android_app;
 use repose_ui::*;
 use std::collections::HashMap;
@@ -20,7 +21,7 @@ static ANDROID_APP: OnceCell<AndroidApp> = OnceCell::new();
 
 const MIN_IMPORT_API: i32 = 30;
 
-fn app(_s: &mut Scheduler) -> View {
+fn app(_s: &mut Scheduler, _rc: &RenderContext) -> View {
     let creds = remember(|| signal(Vec::<WifiCred>::new()));
     let status = remember(|| signal(String::from("Ready")));
     let json_buf = remember(|| signal(String::new()));
@@ -333,5 +334,8 @@ fn ts_secs() -> u64 {
 pub extern "C" fn android_main(android_app: AndroidApp) {
     android_logger::init_once(android_logger::Config::default().with_max_level(LevelFilter::Info));
     let _ = ANDROID_APP.set(android_app.clone());
-    let _ = run_android_app(android_app, app as fn(&mut Scheduler) -> View);
+    let _ = run_android_app(
+        android_app,
+        app as fn(&mut Scheduler, &RenderContext) -> View,
+    );
 }
