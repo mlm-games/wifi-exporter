@@ -1,0 +1,6 @@
+- bump page size def.
+- update repose
+- add fdroid button
+- improve corner roundedness for buttons
+- Update README.md
+- Update README.md
