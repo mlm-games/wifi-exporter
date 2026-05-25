@@ -2,18 +2,19 @@
 
 use jni::JavaVM;
 use jni::objects::{JObject, JString, JValue};
-use once_cell::sync::OnceCell;
 use std::ffi::c_void;
+use std::sync::OnceLock;
 use winit::platform::android::activity::AndroidApp;
 
-static JAVA_VM: OnceCell<JavaVM> = OnceCell::new();
+static JAVA_VM: OnceLock<JavaVM> = OnceLock::new();
 
-fn get_env_and_activity(app: &AndroidApp) -> anyhow::Result<(jni::AttachGuard, JObject)> {
-    let vm = JAVA_VM.get_or_try_init(|| {
+fn get_env_and_activity(app: &AndroidApp) -> anyhow::Result<(jni::AttachGuard<'_>, JObject<'_>)> {
+    let vm = JAVA_VM.get_or_init(|| {
         let vm_ptr = app.vm_as_ptr() as *mut c_void;
         // Safety: provided by the Android runtime; do not free.
         unsafe { JavaVM::from_raw(vm_ptr.cast()) }
-    })?;
+            .expect("JavaVM::from_raw should never fail with a valid AndroidApp")
+    });
 
     let env = vm.attach_current_thread()?;
     // Safety: pointer is provided by Android; do not free/delete it.
@@ -34,6 +35,7 @@ pub fn write_json_via_mediastore(
     json: &str,
 ) -> anyhow::Result<Option<String>> {
     let (mut env, activity) = get_env_and_activity(app)?;
+    env.ensure_local_capacity(64)?;
     let api = sdk_int(&mut env)?;
 
     // Prepare Java strings and store as JObject for JValue::Object
@@ -186,7 +188,7 @@ pub fn write_json_via_mediastore(
         let bytes_obj = JObject::from(bytes);
         env.call_method(&os, "write", "([B)V", &[JValue::Object(&bytes_obj)])?;
         let _ = env.call_method(&os, "flush", "()V", &[]);
-        env.call_method(&os, "close", "()V", &[])?;
+        let _ = env.call_method(&os, "close", "()V", &[]);
 
         // Mark IS_PENDING = 0
         let cv2 = env.new_object("android/content/ContentValues", "()V", &[])?;
@@ -259,7 +261,7 @@ pub fn write_json_via_mediastore(
         let bytes_obj = JObject::from(bytes);
         env.call_method(&fos, "write", "([B)V", &[JValue::Object(&bytes_obj)])?;
         let _ = env.call_method(&fos, "flush", "()V", &[]);
-        env.call_method(&fos, "close", "()V", &[])?;
+        let _ = env.call_method(&fos, "close", "()V", &[]);
 
         // Return absolute path
         let jpath = env

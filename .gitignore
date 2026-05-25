@@ -1,6 +1,5 @@
 /target
 
-# Cargo.lock
 *.apk
 *.aab
 *.so

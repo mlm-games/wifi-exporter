@@ -2,8 +2,9 @@ use anyhow::Context;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use std::sync::OnceLock;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WifiCred {
     pub ssid: String,
     #[serde(alias = "password")]
@@ -21,15 +22,11 @@ fn run_su_cmd(cmd: &str) -> anyhow::Result<String> {
         .output()
         .context("Failed to execute su command")?;
 
-    let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+    let stdout = decode_utf8(&out.stdout);
+    let stderr = decode_utf8(&out.stderr);
 
     if out.status.success() {
-        if stdout.is_empty() {
-            Ok("OK".to_string())
-        } else {
-            Ok(stdout)
-        }
+        Ok(stdout)
     } else {
         Err(anyhow::anyhow!(
             "{}",
@@ -38,23 +35,37 @@ fn run_su_cmd(cmd: &str) -> anyhow::Result<String> {
     }
 }
 
+fn decode_utf8(data: &[u8]) -> String {
+    match String::from_utf8(data.to_vec()) {
+        Ok(s) => s.trim().to_string(),
+        Err(e) => {
+            warn!("Non-UTF-8 output from su command, replacing invalid sequences");
+            String::from_utf8_lossy(e.as_bytes()).trim().to_string()
+        }
+    }
+}
+
 pub fn su_cat(path: &str) -> anyhow::Result<String> {
     let cmd = format!("cat '{}' 2>/dev/null", path);
     run_su_cmd(&cmd)
 }
 
+static API_LEVEL: OnceLock<i32> = OnceLock::new();
+
 pub fn get_api_level() -> i32 {
-    Command::new("getprop")
-        .arg("ro.build.version.sdk")
-        .output()
-        .ok()
-        .and_then(|o| {
-            String::from_utf8_lossy(&o.stdout)
-                .trim()
-                .parse::<i32>()
-                .ok()
-        })
-        .unwrap_or(26)
+    *API_LEVEL.get_or_init(|| {
+        Command::new("getprop")
+            .arg("ro.build.version.sdk")
+            .output()
+            .ok()
+            .and_then(|o| {
+                String::from_utf8_lossy(&o.stdout)
+                    .trim()
+                    .parse::<i32>()
+                    .ok()
+            })
+            .unwrap_or(26)
+    })
 }
 
 /// Adds a single network to system (Android 11+ only)

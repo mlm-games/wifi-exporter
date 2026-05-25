@@ -163,7 +163,6 @@ jobs:
             "build-tools;${{ env.ANDROID_BUILD_TOOLS }}" \
             "ndk;${{ env.ANDROID_NDK_VERSION }}"
 
-
       - name: Pin NDK version and verify
         shell: bash
         run: |
