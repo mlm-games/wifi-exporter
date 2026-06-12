@@ -91,23 +91,64 @@ pub fn su_add_network(cred: &WifiCred) -> anyhow::Result<String> {
     run_su_cmd(&cmd)
 }
 
-/// Bulk import all networks to system (Android 11+ only)
+/// Bulk import all networks to system (Android 11+ only) via a single `su` invocation.
 pub fn su_import_all(creds: &[WifiCred]) -> (usize, usize, Vec<(String, String)>) {
-    let mut success = 0;
-    let mut failed = 0;
-    let mut errors = Vec::new();
+    if creds.is_empty() {
+        return (0, 0, vec![]);
+    }
 
-    for cred in creds {
-        match su_add_network(cred) {
-            Ok(_) => success += 1,
-            Err(e) => {
-                failed += 1;
-                errors.push((cred.ssid.clone(), e.to_string()));
-            }
+    let mut script = String::new();
+    for (i, cred) in creds.iter().enumerate() {
+        let ssid = shell_escape(&cred.ssid);
+        let pass = cred.pass.as_deref().unwrap_or("");
+        if pass.is_empty() {
+            script.push_str(&format!(
+                "{{ cmd wifi add-network '{}' open 2>/dev/null; }} && echo 'OK:{}' || echo 'FAIL:{}'\n",
+                ssid, i, i
+            ));
+        } else {
+            script.push_str(&format!(
+                "{{ cmd wifi add-network '{}' wpa2 '{}' 2>/dev/null; }} && echo 'OK:{}' || echo 'FAIL:{}'\n",
+                ssid, shell_escape(pass), i, i
+            ));
         }
     }
 
-    (success, failed, errors)
+    match run_su_cmd(&script) {
+        Ok(output) => {
+            let mut success = 0;
+            let mut failed = 0;
+            let mut errors = Vec::new();
+            for line in output.lines() {
+                if let Some(idx_str) = line.strip_prefix("OK:") {
+                    if idx_str.parse::<usize>().is_ok() {
+                        success += 1;
+                    }
+                } else if let Some(idx_str) = line.strip_prefix("FAIL:") {
+                    if let Ok(idx) = idx_str.parse::<usize>() {
+                        failed += 1;
+                        if let Some(cred) = creds.get(idx) {
+                            errors.push((cred.ssid.clone(), "cmd wifi failed".into()));
+                        }
+                    }
+                }
+            }
+            if success == 0 && failed == 0 {
+                failed = creds.len();
+                for cred in creds {
+                    errors.push((cred.ssid.clone(), "No output markers from import".into()));
+                }
+            }
+            (success, failed, errors)
+        }
+        Err(e) => {
+            let errors: Vec<_> = creds
+                .iter()
+                .map(|c| (c.ssid.clone(), e.to_string()))
+                .collect();
+            (0, creds.len(), errors)
+        }
+    }
 }
 
 pub fn parse_imported_json(json: &str) -> anyhow::Result<Vec<WifiCred>> {
