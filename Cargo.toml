@@ -1,6 +1,6 @@
 [package]
 name = "wifi_exporter_repose"
-version = "0.3.6"
+version = "0.3.7"
 edition = "2024"
 publish = false
 
@@ -24,7 +24,7 @@ icon = "@drawable/icon"
 anyhow = "1"
 log = "0.4"
 android_logger = "0.15"
-jni = "0.21"
+jni = "0.22"
 ndk = "0.9"
 repose-core = "0.17"
 repose-ui = "0.17"
