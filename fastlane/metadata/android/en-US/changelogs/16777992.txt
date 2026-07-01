@@ -1,0 +1,2 @@
+- bump jni-rs
+- bump repose to 0.17
