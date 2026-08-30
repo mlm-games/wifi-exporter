@@ -26,9 +26,9 @@ env:
   APPLICATION_ID: "dev.mlm.wifi_exporter"
 
   # Android SDK/NDK
-  ANDROID_API: "35"
-  ANDROID_BUILD_TOOLS: "35.0.0"
-  ANDROID_NDK_VERSION: "28.2.13676358"
+  ANDROID_API: "37.0"
+  ANDROID_BUILD_TOOLS: "37.0.0"
+  ANDROID_NDK_VERSION: "29.0.14206865"
 
   # Rust toolchain
   RUST_TOOLCHAIN: "1.92.0"
@@ -175,7 +175,7 @@ jobs:
 
       - name: Install cargo-rapk
         shell: bash
-        run: cargo install --git https://github.com/mlm-games/cargo-rapk.git cargo-rapk --tag v0.13.2 --locked
+        run: cargo install cargo-rapk@0.19.5 --locked
 
       - name: Prepare release keystore for cargo-apk (single-alias keystore)
         shell: bash
