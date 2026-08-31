@@ -86,7 +86,6 @@ jobs:
             unzip -q /tmp/kotlin.zip -d "$CACHE_DIR"
             rm /tmp/kotlin.zip
           fi
-          echo "KOTLIN_COMPILER=$CACHE_DIR/kotlinc/bin/kotlinc" >> "$GITHUB_ENV"
           echo "$CACHE_DIR/kotlinc/bin" >> "$GITHUB_PATH"
           "$CACHE_DIR/kotlinc/bin/kotlinc" -version
           ls -l "$CACHE_DIR/kotlinc/lib/kotlin-stdlib.jar"
