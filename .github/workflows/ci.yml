@@ -41,11 +41,13 @@ jobs:
           BT=$(sed -E -n 's/.*android-build-tools.*"(.*)".*/\1/p' .github/workflows/release.yml | head -1)
           NDK=$(sed -E -n 's/.*android-ndk-version.*"(.*)".*/\1/p' .github/workflows/release.yml)
           RAPK=$(sed -E -n 's/.*cargo-rapk-version.*"(.*)".*/\1/p' .github/workflows/release.yml)
+          KVER=$(sed -E -n 's/.*kotlin-version.*"(.*)".*/\1/p' .github/workflows/release.yml)
           echo "ANDROID_API=$API" >> "$GITHUB_ENV"
           echo "ANDROID_BUILD_TOOLS=$BT" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_VERSION=$NDK" >> "$GITHUB_ENV"
           echo "CARGO_RAPK_VERSION=$RAPK" >> "$GITHUB_ENV"
-          echo "Loaded from release.yml: API=$API BT=$BT NDK=$NDK RAPK=$RAPK"
+          echo "KOTLIN_VERSION=$KVER" >> "$GITHUB_ENV"
+          echo "Loaded from release.yml: API=$API BT=$BT NDK=$NDK RAPK=$RAPK KVER=$KVER"
 
       - uses: actions/setup-java@v5
         with:
@@ -68,6 +70,26 @@ jobs:
 
       - name: Install cargo-rapk
         run: cargo install cargo-rapk@${{ env.CARGO_RAPK_VERSION }} --locked
+
+      - name: Install Kotlin compiler (pinned)
+        if: env.KOTLIN_VERSION != ''
+        run: |
+          set -euo pipefail
+          KVER="${{ env.KOTLIN_VERSION }}"
+          echo "Installing Kotlin $KVER for cargo-rapk"
+          CACHE_DIR="$HOME/.cache/cargo-rapk/kotlin"
+          if [ -x "$CACHE_DIR/kotlinc/bin/kotlinc" ]; then
+            echo "Cached Kotlin: $("$CACHE_DIR/kotlinc/bin/kotlinc" -version 2>&1 | head -1)"
+          else
+            mkdir -p "$CACHE_DIR"
+            curl -fsSL -o /tmp/kotlin.zip "https://github.com/JetBrains/kotlin/releases/download/v${KVER}/kotlin-compiler-${KVER}.zip"
+            unzip -q /tmp/kotlin.zip -d "$CACHE_DIR"
+            rm /tmp/kotlin.zip
+          fi
+          echo "KOTLIN_COMPILER=$CACHE_DIR/kotlinc/bin/kotlinc" >> "$GITHUB_ENV"
+          echo "$CACHE_DIR/kotlinc/bin" >> "$GITHUB_PATH"
+          "$CACHE_DIR/kotlinc/bin/kotlinc" -version
+          ls -l "$CACHE_DIR/kotlinc/lib/kotlin-stdlib.jar"
 
       - name: Build Android APK
         env:
