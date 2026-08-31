@@ -1,3 +1,8 @@
+## v0.4.2
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v0.4.1
 
 - fix(ci): do not set KOTLIN_COMPILER env
