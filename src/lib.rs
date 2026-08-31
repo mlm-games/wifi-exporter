@@ -42,9 +42,9 @@ fn app(_s: &mut Scheduler, _rc: &RenderContext) -> View {
     let share_action = share_json((*status).clone(), (*json_buf).clone());
 
     let api_chip_text = if can_import {
-        format!("API {} • Import ✓", api_level)
+        format!("API {} (Import available)", api_level)
     } else {
-        format!("API {} • Import needs 11+", api_level)
+        format!("API {} (Import needs Android 11+)", api_level)
     };
 
     let status_for_list = (*status).clone();
