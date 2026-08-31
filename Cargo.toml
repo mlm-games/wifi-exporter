@@ -58,9 +58,9 @@ rlobkit-app-events = { version = "0.5", features = ["jni-bridge"] }
 # repose-material = { path = "../repose/crates/repose-material" }
 # repose-platform = { path = "../repose/crates/repose-platform" }
 
-[profile.release]
-opt-level = "z"
-lto = "thin"
+[profile.release] # try fix fdroid release
+opt-level = 3
+lto = "fat"
 codegen-units = 1
 
 [package.metadata.android.sdk]
