@@ -20,26 +20,43 @@ label = "WiFi Exporter"
 fullscreen = true
 icon = "@drawable/icon"
 
+[[package.metadata.android.application.activity]]
+name = "rust.rlobkit.RlobKitMainActivity"
+exported = true
+launch_mode = "singleTask"
+
+[[package.metadata.android.application.activity.intent_filter]]
+actions = ["android.intent.action.MAIN"]
+categories = ["android.intent.category.LAUNCHER"]
+
 [dependencies]
 anyhow = "1"
 log = "0.4"
 android_logger = "0.15"
 jni = "0.22"
 ndk = "0.9"
-repose-core = "0.17"
-repose-ui = "0.17"
-repose-platform = { version = "0.17" }
+repose-core = "0.28"
+repose-ui = "0.28"
+repose-material = "0.28"
+repose-platform = { version = "0.28" }
 
 # repose-core = { path = "../repose/crates/repose-core" }
 # repose-ui = { path = "../repose/crates/repose-ui" }
-# repose-platform = { path = "../repose/crates/repose-platform", features = [
-#     "android",
-# ] }
-
+# repose-material = { path = "../repose/crates/repose-material" }
+# repose-platform = { path = "../repose/crates/repose-platform", features = ["android"] }
 
 winit = "0.30.13"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
+
+[target.'cfg(target_os = "android")'.dependencies]
+rlobkit-app-events = { version = "0.5", features = ["jni-bridge"] }
+
+# [patch.crates-io]
+# repose-core = { path = "../repose/crates/repose-core" }
+# repose-ui = { path = "../repose/crates/repose-ui" }
+# repose-material = { path = "../repose/crates/repose-material" }
+# repose-platform = { path = "../repose/crates/repose-platform" }
 
 [profile.release]
 opt-level = "z"

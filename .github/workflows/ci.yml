@@ -1,0 +1,89 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: ""
+  JAVA_VERSION: "21"
+  JAVA_DISTRIBUTION: "temurin"
+
+jobs:
+  android-apk:
+    name: Android (${{ matrix.abi }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-linux-android
+            abi: arm64-v8a
+          # Add more ABIs if you expand build_targets in Cargo.toml:
+          # - target: armv7-linux-androideabi
+          #   abi: armeabi-v7a
+          # - target: x86_64-linux-android
+          #   abi: x86_64
+          # - target: i686-linux-android
+          #   abi: x86
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load pins from release.yml
+        run: |
+          API=$(sed -E -n 's/.*android-api.*"(.*)".*/\1/p' .github/workflows/release.yml)
+          BT=$(sed -E -n 's/.*android-build-tools.*"(.*)".*/\1/p' .github/workflows/release.yml | head -1)
+          NDK=$(sed -E -n 's/.*android-ndk-version.*"(.*)".*/\1/p' .github/workflows/release.yml)
+          RAPK=$(sed -E -n 's/.*cargo-rapk-version.*"(.*)".*/\1/p' .github/workflows/release.yml)
+          echo "ANDROID_API=$API" >> "$GITHUB_ENV"
+          echo "ANDROID_BUILD_TOOLS=$BT" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_VERSION=$NDK" >> "$GITHUB_ENV"
+          echo "CARGO_RAPK_VERSION=$RAPK" >> "$GITHUB_ENV"
+          echo "Loaded from release.yml: API=$API BT=$BT NDK=$NDK RAPK=$RAPK"
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Set up Android SDK/NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platforms and NDK
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-${{ env.ANDROID_API }}" \
+            "build-tools;${{ env.ANDROID_BUILD_TOOLS }}" \
+            "ndk;${{ env.ANDROID_NDK_VERSION }}"
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install cargo-rapk
+        run: cargo install cargo-rapk@${{ env.CARGO_RAPK_VERSION }} --locked
+
+      - name: Build Android APK
+        env:
+          SOURCE_DATE_EPOCH: ${{ github.event.repository.pushed_at || 0 }}
+        run: |
+          cargo rapk build --release --deterministic --unsigned --target ${{ matrix.target }} --lib
+          OUT_DIR="target/release/apk"
+          if [ -d "target/${{ matrix.target }}/release/apk" ]; then
+            OUT_DIR="target/${{ matrix.target }}/release/apk"
+          fi
+          ls -l "$OUT_DIR"
+          mkdir -p artifacts
+          cp "$(ls -1t "$OUT_DIR"/*.apk | head -n1)" "artifacts/app-${{ matrix.abi }}.apk"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.abi }}
+          path: artifacts/*.apk

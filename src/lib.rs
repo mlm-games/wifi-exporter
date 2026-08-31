@@ -10,10 +10,15 @@ use parsers::{
     su_import_all, try_read_with_su,
 };
 use repose_core::prelude::*;
+use repose_core::{Alignment, FontWeight, PaddingValues};
+use repose_material::material3::{
+    Button, ButtonConfig, Card, CardConfig, ElevatedButton, FilledTonalButton, OutlinedButton,
+    Surface, SurfaceConfig,
+};
 use repose_platform::RenderContext;
 use repose_platform::android::run_android_app;
-use repose_ui::*;
 use repose_ui::scroll::{ScrollArea, remember_scroll_state};
+use repose_ui::*;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -25,7 +30,7 @@ const MIN_IMPORT_API: i32 = 30;
 
 fn app(_s: &mut Scheduler, _rc: &RenderContext) -> View {
     let creds = remember(|| signal(Vec::<WifiCred>::new()));
-    let status = remember(|| signal(String::from("Ready")));
+    let status = remember(|| signal(String::from("Ready — tap Load System")));
     let json_buf = remember(|| signal(String::new()));
     let api_level = get_api_level();
     let can_import = api_level >= MIN_IMPORT_API;
@@ -36,81 +41,133 @@ fn app(_s: &mut Scheduler, _rc: &RenderContext) -> View {
     let save_action = save_json((*status).clone(), (*json_buf).clone());
     let share_action = share_json((*status).clone(), (*json_buf).clone());
 
-    let import_btn_color = if can_import {
-        Color::from_hex("#c53f16ff")
+    let api_chip_text = if can_import {
+        format!("API {} • Import ✓", api_level)
     } else {
-        Color::from_hex("#555555")
-    };
-
-    let api_text = if can_import {
-        format!("API {} | Import: ✓", api_level)
-    } else {
-        format!("API {} | Import: ✗ (needs 11+)", api_level)
-    };
-
-    let api_color = if can_import {
-        Color::from_hex("#888888")
-    } else {
-        Color::from_hex("#FF8888")
+        format!("API {} • Import needs 11+", api_level)
     };
 
     let status_for_list = (*status).clone();
+    let th = theme();
 
-    Surface(
-        Modifier::new()
-            .fill_max_size()
-            .background(Color::from_hex("#121212")),
-        Column(Modifier::new().fill_max_size().padding(24.0)).with_children(vec![
-            Space(Modifier::new().height(16.0)),
-            Text("WiFi Passwords").size(22.0).color(Color::WHITE),
-            Text(api_text).size(12.0).color(api_color),
-            Space(Modifier::new().height(16.0)),
-            Row(Modifier::new().fill_max_width()).with_children(vec![
-                styled_button(
-                    "Load System",
-                    Color::from_hex("#2186F3"),
-                    load_system_action,
+    repose_material::material3::MaterialTheme(th, || {
+        Box(Modifier::new().fill_max_size().background(th.background)).child(
+            Column(Modifier::new().fill_max_size().padding(20.0)).with_children(vec![
+                Column(
+                    Modifier::new()
+                        .fill_max_width()
+                        .padding_values(PaddingValues {
+                            top: 8.0,
+                            left: 4.0,
+                            right: 4.0,
+                            bottom: 12.0,
+                        }),
+                )
+                .with_children(vec![
+                    Text("WiFi Exporter")
+                        .size(28.0)
+                        .color(th.on_background)
+                        .font_weight(FontWeight::BOLD),
+                    Space(Modifier::new().height(6.0)),
+                    Surface(
+                        SurfaceConfig {
+                            modifier: Modifier::new().clip_rounded(20.0),
+                            color: if can_import {
+                                th.primary_container
+                            } else {
+                                th.error_container
+                            },
+                            content_color: if can_import {
+                                th.on_primary_container
+                            } else {
+                                th.on_error_container
+                            },
+                            shape_radius: 20.0,
+                            ..Default::default()
+                        },
+                        || {
+                            Box(Modifier::new().padding_values(PaddingValues {
+                                left: 12.0,
+                                right: 12.0,
+                                top: 6.0,
+                                bottom: 6.0,
+                            }))
+                            .child(
+                                Text(api_chip_text.clone())
+                                    .size(12.0)
+                                    .font_weight(FontWeight::MEDIUM),
+                            )
+                        },
+                    ),
+                ]),
+                Space(Modifier::new().height(16.0)),
+                Row(Modifier::new().fill_max_width().gap(12.0)).with_children(vec![
+                    Button(
+                        Modifier::new().weight(1.0),
+                        load_system_action.clone(),
+                        ButtonConfig::default(),
+                        || Text("Load System").size(14.0),
+                    ),
+                    FilledTonalButton(
+                        Modifier::new().weight(1.0),
+                        load_file_action.clone(),
+                        ButtonConfig::default(),
+                        || Text("Load File").size(14.0),
+                    ),
+                ]),
+                Space(Modifier::new().height(12.0)),
+                Row(Modifier::new().fill_max_width().gap(12.0)).with_children(vec![
+                    OutlinedButton(
+                        Modifier::new().weight(1.0),
+                        save_action.clone(),
+                        ButtonConfig::default(),
+                        || Text("Save JSON").size(14.0),
+                    ),
+                    OutlinedButton(
+                        Modifier::new().weight(1.0),
+                        share_action.clone(),
+                        ButtonConfig::default(),
+                        || Text("Share").size(14.0),
+                    ),
+                ]),
+                Space(Modifier::new().height(14.0)),
+                {
+                    let mut cfg = ButtonConfig::default();
+                    cfg.enabled = can_import;
+                    ElevatedButton(
+                        Modifier::new().fill_max_width().height(48.0),
+                        import_to_system_action.clone(),
+                        cfg,
+                        || {
+                            Text("Import All to System")
+                                .size(14.0)
+                                .font_weight(FontWeight::MEDIUM)
+                        },
+                    )
+                },
+                Space(Modifier::new().height(16.0)),
+                Surface(
+                    SurfaceConfig {
+                        modifier: Modifier::new().fill_max_width().clip_rounded(12.0),
+                        color: th.surface_container,
+                        content_color: th.on_surface,
+                        shape_radius: 12.0,
+                        ..Default::default()
+                    },
+                    || {
+                        Box(Modifier::new().padding(12.0))
+                            .child(Text(status.get()).size(13.0).color(th.on_surface_variant))
+                    },
                 ),
-                Space(Modifier::new().width(8.0)),
-                styled_button("Load File", Color::from_hex("#2186F3"), load_file_action),
+                Space(Modifier::new().height(16.0)),
+                Box(Modifier::new().weight(1.0).fill_max_width()).child(network_list(
+                    creds.get(),
+                    status_for_list,
+                    can_import,
+                )),
             ]),
-            Space(Modifier::new().height(30.0)),
-            Row(Modifier::new().fill_max_width()).with_children(vec![
-                styled_button("Save JSON", Color::from_hex("#4CAF50"), save_action),
-                Space(Modifier::new().width(8.0)),
-                styled_button("Share", Color::from_hex("#4CAF50"), share_action),
-            ]),
-            Space(Modifier::new().height(30.0)),
-            Button(
-                Text("Import All to System").size(14.0).color(Color::WHITE),
-                import_to_system_action,
-            )
-            .modifier(
-                Modifier::new()
-                    .fill_max_width()
-                    .padding(12.0)
-                    .background(import_btn_color)
-                    .clip_rounded(8.0),
-            ),
-            Space(Modifier::new().height(12.0)),
-            // Status
-            Text(status.get())
-                .size(13.0)
-                .color(Color::from_hex("#69F0AE")),
-            Space(Modifier::new().height(12.0)),
-            network_list(creds.get(), status_for_list, can_import),
-        ]),
-    )
-}
-
-fn styled_button<F: Fn() + Clone + 'static>(label: &str, bg: Color, action: F) -> View {
-    Button(Text(label).size(13.0).color(Color::WHITE), action).modifier(
-        Modifier::new()
-            .weight(1.0)
-            .padding(10.0)
-            .background(bg)
-            .clip_rounded(6.0),
-    )
+        )
+    })
 }
 
 fn load_system(
@@ -119,7 +176,7 @@ fn load_system(
     json_buf: Signal<String>,
 ) -> impl Fn() + Clone + 'static {
     move || {
-        status.set("Reading system config...".into());
+        status.set("Reading system config…".into());
         match try_read_with_su() {
             Ok(mut v) => {
                 v.retain(|c| !c.ssid.is_empty());
@@ -144,7 +201,7 @@ fn load_file(
     json_buf: Signal<String>,
 ) -> impl Fn() + Clone + 'static {
     move || {
-        status.set("Reading wifi_import.json...".into());
+        status.set("Reading wifi_import.json…".into());
 
         let paths = [
             "/sdcard/Download/wifi_import.json",
@@ -212,7 +269,7 @@ fn import_to_system(
             return;
         }
 
-        status.set(format!("Adding {} networks...", list.len()));
+        status.set(format!("Adding {} networks…", list.len()));
 
         let (success, failed, errors) = su_import_all(&list);
 
@@ -231,10 +288,7 @@ fn import_to_system(
     }
 }
 
-fn save_json(
-    status: Signal<String>,
-    json_buf: Signal<String>,
-) -> impl Fn() + Clone + 'static {
+fn save_json(status: Signal<String>, json_buf: Signal<String>) -> impl Fn() + Clone + 'static {
     move || {
         let json = json_buf.get();
         if json.is_empty() {
@@ -255,10 +309,7 @@ fn save_json(
     }
 }
 
-fn share_json(
-    status: Signal<String>,
-    json_buf: Signal<String>,
-) -> impl Fn() + Clone + 'static {
+fn share_json(status: Signal<String>, json_buf: Signal<String>) -> impl Fn() + Clone + 'static {
     move || {
         let json = json_buf.get();
         if json.is_empty() {
@@ -276,13 +327,26 @@ fn share_json(
 
 fn network_list(creds: Vec<WifiCred>, status: Signal<String>, can_import: bool) -> View {
     let scroll_state = remember_scroll_state("network_list");
+    let th = theme();
 
     let rows: Vec<View> = if creds.is_empty() {
         vec![
-            Text("No networks loaded")
-                .size(14.0)
-                .color(Color::from_hex("#666666"))
-                .modifier(Modifier::new().padding(16.0)),
+            Box(Modifier::new().fill_max_width().padding(32.0)).child(
+                Column(
+                    Modifier::new()
+                        .fill_max_width()
+                        .align_items(AlignItems::CENTER),
+                )
+                .with_children(vec![
+                    Text("No networks loaded")
+                        .size(15.0)
+                        .color(th.on_surface_variant),
+                    Space(Modifier::new().height(6.0)),
+                    Text("Tap Load System (root) or Load File")
+                        .size(12.0)
+                        .color(th.outline),
+                ]),
+            ),
         ]
     } else {
         creds
@@ -296,42 +360,73 @@ fn network_list(creds: Vec<WifiCred>, status: Signal<String>, can_import: bool) 
                         status_signal.set("Import requires Android 11+".into());
                         return;
                     }
-                    status_signal.set(format!("Adding '{}'...", cred.ssid));
+                    status_signal.set(format!("Adding '{}'…", cred.ssid));
                     match su_add_network(&cred) {
                         Ok(_) => status_signal.set(format!("✓ Added '{}'", cred.ssid)),
                         Err(e) => status_signal.set(format!("✗ {}: {}", cred.ssid, e)),
                     }
                 };
 
-                let btn_color = if can_import {
-                    Color::from_hex("#4CAF50")
-                } else {
-                    Color::from_hex("#444444")
-                };
+                let pass_display = c.pass.as_deref().unwrap_or("Open • no password");
 
-                let pass_display = c.pass.as_deref().unwrap_or("<no password>");
-
-                Row(Modifier::new()
-                    .fill_max_width()
-                    .padding(8.0)
-                    .background(Color::from_hex("#1E1E1E"))
-                    .clip_rounded(8.0))
-                .with_children(vec![
-                    Column(Modifier::new().weight(1.0).padding(4.0)).with_children(vec![
-                        Text(&c.ssid).size(15.0).color(Color::WHITE),
-                        Text(pass_display)
-                            .size(12.0)
-                            .color(Color::from_hex("#AAAAAA")),
-                    ]),
-                    Button(Text("+").size(16.0).color(Color::WHITE), add_action).modifier(
-                        Modifier::new()
-                            .size(40.0, 40.0)
-                            .background(btn_color)
-                            .clip_rounded(15.0),
-                    ),
-                    Space(Modifier::new().width(20.0)),
-                ])
-                .modifier(Modifier::new().padding(2.0))
+                Card(
+                    CardConfig {
+                        modifier: Modifier::new()
+                            .fill_max_width()
+                            .padding_values(PaddingValues {
+                                left: 2.0,
+                                right: 2.0,
+                                top: 4.0,
+                                bottom: 4.0,
+                            }),
+                        container_color: th.surface_container_low,
+                        content_color: th.on_surface,
+                        shape_radius: 16.0,
+                        tonal_elevation: 1.0,
+                        ..Default::default()
+                    },
+                    {
+                        let c = c.clone();
+                        move || {
+                            Row(Modifier::new().fill_max_width().padding(14.0).gap(12.0))
+                                .with_children(vec![
+                                    Box(Modifier::new()
+                                        .size(40.0, 40.0)
+                                        .background(th.primary_container)
+                                        .clip_rounded(20.0))
+                                    .child(
+                                        Box(Modifier::new()
+                                            .fill_max_size()
+                                            .content_alignment(Alignment::Center))
+                                        .child(Text("≋").size(16.0).color(th.on_primary_container)),
+                                    ),
+                                    Column(Modifier::new().weight(1.0).gap(2.0)).with_children(
+                                        vec![
+                                            Text(c.ssid.clone())
+                                                .size(15.0)
+                                                .color(th.on_surface)
+                                                .font_weight(FontWeight::MEDIUM)
+                                                .overflow_ellipsize(),
+                                            Text(pass_display.to_string())
+                                                .size(12.0)
+                                                .color(th.on_surface_variant)
+                                                .overflow_ellipsize(),
+                                        ],
+                                    ),
+                                    {
+                                        let mut cfg = ButtonConfig::default();
+                                        cfg.enabled = can_import;
+                                        FilledTonalButton(
+                                            Modifier::new().size(44.0, 44.0),
+                                            add_action.clone(),
+                                            cfg,
+                                            || Text("+").size(18.0),
+                                        )
+                                    },
+                                ])
+                        }
+                    },
+                )
             })
             .collect()
     };
@@ -339,7 +434,7 @@ fn network_list(creds: Vec<WifiCred>, status: Signal<String>, can_import: bool) 
     ScrollArea(
         Modifier::new().fill_max_size(),
         scroll_state,
-        Column(Modifier::new().fill_max_width()).with_children(rows),
+        Column(Modifier::new().fill_max_width().gap(4.0)).with_children(rows),
     )
 }
 
@@ -354,6 +449,18 @@ fn ts_secs() -> u64 {
 pub extern "C" fn android_main(android_app: AndroidApp) {
     android_logger::init_once(android_logger::Config::default().with_max_level(LevelFilter::Info));
     let _ = ANDROID_APP.set(android_app.clone());
+
+    rlobkit_app_events::insets::set_on_insets(Box::new(|insets| {
+        let r = repose_core::locals::WindowInsets {
+            top: insets.top,
+            bottom: insets.bottom,
+            left: insets.left,
+            right: insets.right,
+            ime_bottom: insets.ime_bottom,
+        };
+        repose_core::locals::set_window_insets_default(r);
+    }));
+
     let _ = run_android_app(
         android_app,
         app as fn(&mut Scheduler, &RenderContext) -> View,

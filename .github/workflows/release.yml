@@ -1,0 +1,52 @@
+name: Release binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+      mark_prerelease:
+        description: "Mark as prerelease"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release-bin-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: mlm-games/ci/.github/workflows/rust-app-release.yml@v1
+    with:
+      working-directory: .
+      app-name: "Wifi Exporter"
+      app-slug: "wifi-exporter"
+      bump-type: ${{ inputs.bump_type }}
+      include-desktop: false
+      include-android: true
+      include-universal: false
+      prerelease: ${{ inputs.mark_prerelease }}
+      generate-release-notes: true
+      changelog-path: "CHANGELOG.md"
+      version-file-path: "./fastlane/metadata/android/en-US/changelogs/{{version_code}}.txt"
+      metainfo-path: ""
+      dispatch-on-release: '[]'
+      android-api: "37.0"
+      android-build-tools: "37.0.0"
+      android-ndk-version: "29.0.14206865"
+      cargo-rapk-version: "0.19.5"
+      android-d8-version: ""
+    secrets: inherit
