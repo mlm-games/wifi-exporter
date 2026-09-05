@@ -1,0 +1,1 @@
+- pin kotlin for fdroid ci
