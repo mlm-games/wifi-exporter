@@ -1,3 +1,8 @@
+## v0.4.4
+
+- No user-facing changes were mentioned since previous release
+
+
 ## v0.4.3
 
 - pin kotlin for fdroid ci
